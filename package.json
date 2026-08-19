@@ -1,0 +1,12 @@
+{
+  "name": "shootit",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Shoot It: a cosy crowd-runner for kids. No ads, no lives, no timers, nothing to buy, no accounts, no cookies, nothing sold or shared.",
+  "type": "module",
+  "scripts": {
+    "serve": "node tools/serve.mjs . 4311",
+    "icons": "node tools/make-icons.mjs",
+    "verify": "node tools/verify-levels.mjs"
+  }
+}
