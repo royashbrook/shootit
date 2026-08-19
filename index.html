@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Shoot It</title>
+<!-- the ethos line is required, and it goes in the description where a person can read it -->
+<meta name="description" content="A cosy crowd-runner for kids: grow your crowd through maths gates and pop the slimes. No ads, no lives, no timers, nothing to buy, no accounts, no cookies, nothing sold or shared. Works offline.">
+<meta name="theme-color" content="#3E63DD">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<!-- ============ menu: the shape every house game boots into ============ -->
+<main id="menu" class="screen">
+  <h1>Shoot It</h1>
+  <p class="tagline">grow your crowd, pop the slimes</p>
+
+  <button id="play" class="big">PLAY</button>
+  <button id="daily" class="big secondary">TODAY'S RUN</button>
+  <button id="levels-open" class="big secondary">PICK A LEVEL</button>
+  <button id="friends" class="big secondary">PLAY WITH A FRIEND</button>
+  <button id="howto-open" class="big secondary">HOW TO PLAY</button>
+  <!-- install stays hidden until the browser says the app is actually installable -->
+  <button id="install" class="big secondary" hidden>ADD TO HOME SCREEN</button>
+
+  <p class="ethos">no ads &middot; no timers &middot; nothing to buy &middot; no cookies</p>
+</main>
+
+<!-- ============ level picker ============ -->
+<main id="levels" class="screen" hidden>
+  <header class="bar">
+    <button id="levels-back" class="chip">&larr;</button>
+    <span id="world-title" class="chip flat">world</span>
+  </header>
+  <div class="world-nav">
+    <button id="world-prev" class="chip">&laquo; PREV</button>
+    <span id="world-count" class="chip flat"></span>
+    <button id="world-next" class="chip">NEXT &raquo;</button>
+  </div>
+  <div id="world-grid" aria-label="levels in this world"></div>
+  <p id="sorted-total" class="small center"></p>
+</main>
+
+<!-- ============ game ============ -->
+<main id="game" class="screen" hidden>
+  <header class="bar">
+    <button id="back" class="chip" aria-label="back to menu">&larr;</button>
+    <span id="board-label" class="chip flat"></span>
+    <span class="chip flat mono"><span id="count" aria-live="off">5</span> buddies</span>
+  </header>
+
+  <div id="stage">
+    <canvas id="board" aria-label="the run: steer with your finger or arrow keys"></canvas>
+  </div>
+
+  <div class="actions">
+    <button id="sound" class="chip" aria-label="sound on or off">&#9834; SOUND</button>
+    <button id="retry" class="chip">&#8635; RETRY</button>
+  </div>
+
+  <div id="won" class="won" role="status" hidden>
+    <p class="won-title">SLIMES POPPED!</p>
+    <p id="won-detail" class="won-detail"></p>
+    <button id="next" class="big">NEXT LEVEL</button>
+    <button id="again" class="big secondary">PLAY AGAIN</button>
+    <button id="share-win" class="big secondary">SEND THIS RUN TO A FRIEND</button>
+  </div>
+
+  <div id="lost" class="won" role="status" hidden>
+    <p class="won-title">SO CLOSE!</p>
+    <p class="won-detail">every buddy popped &mdash; jump right back in!</p>
+    <button id="retry-big" class="big">TRY AGAIN</button>
+    <button id="lost-menu" class="big secondary">BACK TO MENU</button>
+  </div>
+</main>
+
+<!-- ============ how to play: in-app, never an external page ============ -->
+<dialog id="howto">
+  <h2>How to play</h2>
+  <ol>
+    <li>Slide your finger to steer your crowd of buddies.</li>
+    <li>Run through a gate to do its maths: <b>&times;2</b> makes your crowd bigger, <b>&minus;5</b> makes it smaller.</li>
+    <li>Your buddies shoot stars at slimes all by themselves.</li>
+    <li>Pop the big boss slime at the end to win!</li>
+  </ol>
+  <p class="small">If all your buddies pop, just tap <b>TRY AGAIN</b> &mdash; nothing is lost, ever. Take as long as you want.</p>
+  <button id="howto-close" class="big">GOT IT</button>
+</dialog>
+
+<!-- ============ update banner ============ -->
+<button id="update" class="update" hidden>NEW VERSION, TAP TO LOAD</button>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>

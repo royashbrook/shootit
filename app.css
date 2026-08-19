@@ -1,0 +1,252 @@
+/* warm and cosy over slick, calm over loud. big tap targets, portrait, one hand.
+   system font stack only: a webfont is a third-party request with a kid's IP on
+   it, and it costs offline-first (see STANDARD.md). */
+:root {
+  --bg: #FFF6E5;
+  --ink: #3D3230;
+  --soft: #8A7A70;
+  --accent: #7EA6FF;
+  --card: #FFFFFF;
+  --line: #3D3230;
+  --tint: #DFF0D0;
+  color: var(--ink);
+  background: var(--bg);
+  font-family: ui-rounded, "Arial Rounded MT Bold", "Nunito", system-ui, sans-serif;
+  font-synthesis: none;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: var(--bg);
+  -webkit-text-size-adjust: 100%;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation; /* no double-tap zoom while pouring fast */
+}
+
+/* dvh, not vh: mobile safari's vh includes the collapsing url bar.
+   height, not min-height: the board sizes itself FROM the viewport, so the
+   body must never grow to fit an oversized board (that feedback loop is how
+   a capacity-5 board once overflowed an iPhone SE). */
+body {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  padding:
+    max(.8rem, env(safe-area-inset-top))
+    max(.8rem, env(safe-area-inset-right))
+    max(.8rem, env(safe-area-inset-bottom))
+    max(.8rem, env(safe-area-inset-left));
+}
+
+[hidden] { display: none !important; }
+
+.screen {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  gap: .7rem;
+  width: 100%;
+  max-width: 30rem;
+  min-height: 0;
+  margin: 0 auto;
+}
+
+/* menu and picker may scroll on very short screens; the game never does */
+#menu, #levels { overflow-y: auto; }
+#game { overflow: hidden; }
+
+h1 {
+  margin: 1.2rem 0 0;
+  font-size: clamp(2.6rem, 14vw, 3.6rem);
+  letter-spacing: .02em;
+}
+
+.tagline { margin: 0 0 1rem; color: var(--soft); font-weight: 700; }
+
+.big {
+  width: 100%;
+  min-height: 3.4rem;
+  padding: .9rem 1.2rem;
+  border: .18rem solid var(--line);
+  border-radius: 1.2rem;
+  background: var(--accent);
+  box-shadow: 0 .3rem 0 var(--line);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 800;
+  font-size: 1.05rem;
+  cursor: pointer;
+}
+
+.big:active { transform: translateY(.25rem); box-shadow: 0 .05rem 0 var(--line); }
+.big.secondary { background: var(--card); }
+
+.ethos {
+  margin-top: auto;
+  padding-top: 1.4rem;
+  color: var(--soft);
+  font-size: .8rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.small { color: var(--soft); font-size: .85rem; line-height: 1.5; }
+.center { text-align: center; }
+
+/* ------------------------------------------------------------------ chrome */
+
+.bar { display: flex; gap: .4rem; align-items: center; width: 100%; }
+
+.chip {
+  min-height: 2.75rem; /* 44px floor */
+  min-width: 2.75rem;
+  padding: .5rem .7rem;
+  border: .15rem solid var(--line);
+  border-radius: .9rem;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 800;
+  font-size: .8rem;
+  cursor: pointer;
+}
+
+.chip:active { transform: translateY(.12rem); }
+.chip.flat { border-color: transparent; background: transparent; color: var(--soft); cursor: default; }
+.chip.flat.mono { font-variant-numeric: tabular-nums; }
+#board-label { flex: 1; text-align: left; padding-inline: .2rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#sound.muted { text-decoration: line-through; opacity: .6; }
+
+/* the in-game controls live at the BOTTOM, where a kid's thumb already is */
+.actions { display: flex; gap: .6rem; width: 100%; }
+.actions .chip { flex: 1; min-height: 3rem; }
+
+/* ------------------------------------------------------------------- stage */
+
+/* the canvas fills whatever the flex column leaves it; game.js fit() reads
+   this box and sizes the backing store to match (dpr-aware) */
+#stage {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border: .16rem solid var(--line);
+  border-radius: 1.4rem;
+  background: var(--tint);
+}
+
+#stage canvas {
+  display: block;
+  touch-action: none; /* steering must never scroll the page */
+}
+
+/* --------------------------------------------------------------- overlays */
+
+.won {
+  position: fixed;
+  inset: auto 0 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  padding: 1.2rem
+    max(1.2rem, env(safe-area-inset-right))
+    max(1.2rem, calc(env(safe-area-inset-bottom) + 1.2rem))
+    max(1.2rem, env(safe-area-inset-left));
+  border-top: .22rem solid var(--line);
+  border-radius: 1.6rem 1.6rem 0 0;
+  background: var(--bg);
+  box-shadow: 0 -1rem 3rem rgb(61 50 48 / .18);
+  text-align: center;
+}
+
+.won-title { margin: 0; font-size: 1.6rem; font-weight: 800; }
+.won-detail { margin: .2rem 0 .6rem; color: var(--soft); font-weight: 700; }
+
+dialog {
+  width: min(24rem, calc(100vw - 2rem));
+  padding: 1.2rem;
+  border: .22rem solid var(--line);
+  border-radius: 1.4rem;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+dialog::backdrop { background: rgb(61 50 48 / .45); }
+dialog h2 { margin: 0 0 .6rem; }
+dialog ol { margin: 0 0 .8rem; padding-left: 1.2rem; line-height: 1.6; }
+dialog li { margin-bottom: .3rem; }
+
+.update {
+  position: fixed;
+  left: 50%;
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  z-index: 9;
+  translate: -50% 0;
+  width: auto;
+  padding: .8rem 1.4rem;
+  border: .18rem solid var(--line);
+  border-radius: 1.2rem;
+  background: var(--accent);
+  box-shadow: 0 .3rem 0 var(--line);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.confetti {
+  position: fixed;
+  inset: 0 auto auto 0;
+  z-index: 8;
+  pointer-events: none;
+  /* width/height set from innerWidth/innerHeight in confetti.js so the css
+     box always matches the canvas backing store (100vh lies on ios safari) */
+}
+
+/* ------------------------------------------------------------ level picker */
+
+.world-nav { display: flex; gap: .5rem; align-items: center; width: 100%; }
+.world-nav .flat { flex: 1; text-align: center; }
+
+#world-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: .6rem;
+  width: 100%;
+  margin-top: .4rem;
+}
+
+.lvl {
+  display: flex;
+  flex-direction: column;
+  gap: .1rem;
+  align-items: center;
+  justify-content: center;
+  min-height: 3.4rem;
+  border: .16rem solid var(--line);
+  border-radius: 1rem;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.lvl:active { transform: translateY(.15rem); }
+.lvl.done { background: #C6E8C2; }
+.lvl.now { background: var(--accent); box-shadow: 0 .25rem 0 var(--line); }
+.lvl:disabled { opacity: .38; cursor: default; }
+.lvl .sub { font-size: .72rem; color: var(--soft); font-weight: 700; }
+
+/* the game IS motion, so reduced-motion here means: no decorative page
+   animation. gameplay motion stays (it is the information), and game.js
+   already skips confetti under this setting. */
+@media (prefers-reduced-motion: reduce) {
+  .big:active, .chip:active, .lvl:active { transform: none; }
+}

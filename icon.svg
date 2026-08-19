@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect x="20.48" y="20.48" width="471.04" height="471.04" rx="112.64" fill="#3e63dd"/>
+  <polygon points="337.1,97.5 353.7,137.3 396.7,140.8 363.9,168.9 373.9,210.9 337.1,188.4 300.3,210.9 310.3,168.9 277.5,140.8 320.5,137.3" fill="#ffc53d" stroke="#2a2331" stroke-width="22.1" stroke-linejoin="round"/>
+  <circle cx="256" cy="307.6" r="110.6" fill="#fff6e5" stroke="#2a2331" stroke-width="22.1"/>
+  <clipPath id="cap"><circle cx="256" cy="307.6" r="110.6"/></clipPath>
+  <rect x="145.4" y="197.0" width="221.2" height="64.1" fill="#ffc53d" clip-path="url(#cap)"/>
+  <line x1="145.4" y1="261.2" x2="366.6" y2="261.2" stroke="#2a2331" stroke-width="18.4" clip-path="url(#cap)"/>
+  <circle cx="220.6" cy="309.8" r="12.2" fill="#2a2331"/>
+  <circle cx="291.4" cy="309.8" r="12.2" fill="#2a2331"/>
+  <path d="M 214.2 341.1 A 46.4 46.4 0 0 0 297.8 341.1" stroke="#2a2331" stroke-width="15.5" stroke-linecap="round" fill="none"/>
+</svg>
