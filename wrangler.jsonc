@@ -1,0 +1,21 @@
+{
+  // Shoot It on its own origin, served as Cloudflare Workers static assets, the same
+  // pattern as craftrush / scoopaloo / quarry / sortit: its own hostname so the game
+  // deploys itself when it changes, and its traffic stays out of the content site's
+  // analytics.
+  //
+  // No build step: a vanilla single-page PWA served straight from the repo root.
+  // .assetsignore keeps the tooling and docs out of the deployed bundle.
+  "name": "shootit",
+  // not a secret, and inlining it lets CI deploy without an account picker
+  "account_id": "b13c1cf2483bdad430b91ae25126e984",
+  "compatibility_date": "2026-08-19",
+  "assets": {
+    "directory": "."
+  },
+  // custom_domain provisions the DNS record and the cert, so the hostname is
+  // declared here rather than clicked into a dashboard and forgotten.
+  "routes": [
+    { "pattern": "shootit.royashbrook.com", "custom_domain": true }
+  ]
+}

@@ -1,0 +1,12 @@
+.git
+.githooks
+.claude
+node_modules
+tools
+ISSUES.md
+README.md
+package.json
+package-lock.json
+wrangler.jsonc
+.assetsignore
+.gitignore
