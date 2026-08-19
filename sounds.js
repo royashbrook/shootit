@@ -47,12 +47,22 @@ export const sound = {
     tone({ freq: 880, glide: 520, type: 'triangle', len: 0.05, vol: 0.025 })
   },
   pop() { tone({ freq: 300, glide: 90, type: 'sine', len: 0.1, vol: 0.07 }) },
+  // create/resume the context INSIDE a user gesture. every gameplay tone
+  // fires from the rAF loop, and an AudioContext born outside a gesture can
+  // stay suspended on ios — call this from the click that starts a run.
+  warm() { ac() },
   gateGood() {
     tone({ freq: 523, glide: 660, type: 'triangle', len: 0.1, vol: 0.12 })
     tone({ freq: 784, type: 'triangle', at: 0.08, len: 0.12, vol: 0.1 })
   },
   gateBad() { tone({ freq: 220, glide: 150, type: 'square', len: 0.16, vol: 0.05 }) },
-  ouch() { tone({ freq: 160, glide: 120, type: 'square', len: 0.09, vol: 0.05 }) },
+  _lastOuch: 0,
+  ouch() { // rate-limited: melee decrements every few ticks, one ouch per beat
+    const now = ctx ? ctx.currentTime : 0
+    if (now - this._lastOuch < 0.18) return
+    this._lastOuch = now
+    tone({ freq: 160, glide: 120, type: 'square', len: 0.09, vol: 0.05 })
+  },
   bossRoar() { tone({ freq: 110, glide: 70, type: 'square', len: 0.5, vol: 0.09 }) },
   lost() { // gentle "aww", never a punishment sting
     tone({ freq: 392, glide: 350, type: 'triangle', len: 0.2, vol: 0.12 })

@@ -56,9 +56,11 @@ function makeGate(random, expected, params) {
   let left
   let right
   if (params.traps && random() < 0.22) {
-    // trap pair: both cost you, pick the LESS bad one (÷2 vs −k, real choice)
-    left = pick(random, dragOps)
-    right = pick(random, dragOps)
+    // trap pair: both cost you, pick the LESS bad one (÷2 vs −k). the two
+    // sides are forced to differ, or it isn't a choice at all.
+    const li = Math.floor(random() * dragOps.length)
+    left = dragOps[li]
+    right = dragOps[(li + 1) % dragOps.length]
   } else {
     left = pick(random, boostOps)
     right = params.divisors && random() < 0.45 ? pick(random, dragOps) : pick(random, boostOps)
@@ -79,12 +81,8 @@ export function makeLevel(seed, params) {
   let y = 420
 
   const segments = params.gates + params.packs
-  const order = []
-  for (let i = 0; i < params.gates; i++) order.push('gate')
-  for (let i = 0; i < params.packs; i++) order.push('pack')
   // interleave deterministically: gate first, then alternate as evenly as the
   // counts allow (fisher-yates would cluster packs; kids read rhythm better)
-  order.sort(() => 0) // keep stable; explicit interleave below
   const laid = []
   let g = 0
   let p = 0
@@ -119,9 +117,14 @@ export function makeLevel(seed, params) {
 }
 
 // walk salts until the bot proves the level. deterministic: every device
-// walks the same salts and stops at the same layout. verify-levels.mjs
-// asserts the walk terminates fast for every shipped level.
-const MAX_SALT = 32
+// walks the same salts and stops at the same layout.
+//
+// MAX_SALT is deep on purpose. review found real dates (first: 2030-07-27)
+// and ~0.07% of arbitrary shared seeds where a 32-salt walk exhausted and
+// THREW — a pre-scheduled worldwide daily outage. per-salt win odds are
+// ~35%, so 256 salts puts failure around 10^-47: effectively unreachable,
+// and verify-levels.mjs asserts generous headroom on everything it sweeps.
+const MAX_SALT = 256
 
 function findLevel(params, seedFor) {
   for (let salt = 0; salt < MAX_SALT; salt++) {
@@ -129,7 +132,7 @@ function findLevel(params, seedFor) {
     const result = runBot(level)
     if (result.phase === 'won' && result.count >= 2) return { level, salt, bot: result }
   }
-  throw new Error('no beatable layout found') // verify proves unreachable
+  throw new Error('no beatable layout found')
 }
 
 export function levelFor(n) {

@@ -10,10 +10,17 @@
 const PROBE = '?update-probe'
 const EVERY = 5 * 60 * 1000
 
-export function wireUpdate(banner, { onStatus } = {}) {
+// `allowed` gates WHEN the banner may appear (not whether we check): shown
+// mid-run it would sit on top of the end-sheet buttons, and a mistap reloads
+// the game away. staleness found while playing surfaces at the next safe moment.
+export function wireUpdate(banner, { onStatus, allowed = () => true } = {}) {
   if (!banner) return { check: async () => 'unknown' }
 
   let baseline = null
+  let stale = false
+
+  const surface = () => { if (stale && allowed()) banner.hidden = false }
+  setInterval(surface, 3000)
 
   const check = async () => {
     try {
@@ -33,7 +40,8 @@ export function wireUpdate(banner, { onStatus } = {}) {
         return 'current'
       }
       if (text !== baseline) {
-        banner.hidden = false
+        stale = true
+        surface()
         return 'stale'
       }
       return 'current'

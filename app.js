@@ -182,8 +182,11 @@ async function share(button, subject) {
 
 // --------------------------------------------------------------- wiring
 
-$('play').addEventListener('click', () => startLevel(progress.current))
-$('daily').addEventListener('click', () => startSeed(dailySeed(), "today's run"))
+// warm the AudioContext inside the gesture that starts a run: every gameplay
+// tone fires from the rAF loop, and ios keeps a loop-born context suspended
+$('play').addEventListener('click', () => { sound.warm(); startLevel(progress.current) })
+$('daily').addEventListener('click', () => { sound.warm(); startSeed(dailySeed(), "today's run") })
+$('board').addEventListener('pointerdown', () => sound.warm())
 $('levels-open').addEventListener('click', () => { world = Math.floor((progress.current - 1) / WORLD_SIZE); renderWorld(); show(levelsScreen) })
 $('levels-back').addEventListener('click', () => show(menu))
 $('world-prev').addEventListener('click', () => { world = Math.max(0, world - 1); renderWorld() })
@@ -221,7 +224,9 @@ function paintSound(muted) {
 paintSound(sound.muted)
 soundChip.addEventListener('click', () => paintSound(sound.toggle()))
 
-addEventListener('resize', () => { if (game.isRunning()) game.fit() })
+// refresh, not fit: after a run ends the frozen frame behind the end sheet
+// still has to track rotations
+addEventListener('resize', () => { if (!gameScreen.hidden) game.refresh() })
 
 wireInstall($('install'), {
   showIosHint: () => {
@@ -235,7 +240,7 @@ wireInstall($('install'), {
   },
 })
 
-wireUpdate($('update'))
+wireUpdate($('update'), { allowed: () => gameScreen.hidden }) // never over a run
 registerWorker()
 
 // a shared link drops the player straight onto their friend's run
@@ -243,7 +248,9 @@ const params = new URLSearchParams(location.search)
 const sharedLevel = Number.parseInt(params.get('level') ?? '', 10)
 const sharedSeed = Number.parseInt(params.get('seed') ?? '', 10)
 if (Number.isFinite(sharedLevel) && sharedLevel >= 1 && sharedLevel <= LEVEL_COUNT) {
+  history.replaceState(null, '', location.pathname) // a reload is THEIR game again
   startLevel(sharedLevel)
 } else if (Number.isFinite(sharedSeed) && sharedSeed > 0) {
+  history.replaceState(null, '', location.pathname)
   startSeed(sharedSeed, sharedSeed === dailySeed() ? "today's run" : `run ${sharedSeed}`)
 }

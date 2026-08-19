@@ -54,7 +54,7 @@ function store(request, response) {
 
 self.addEventListener('fetch', event => {
   const request = event.request
-  if (request.method !== 'GET' || !request.url.startsWith(self.location.origin)) return
+  if (request.method !== 'GET' || new URL(request.url).origin !== self.location.origin) return
   if (new URL(request.url).searchParams.has('update-probe')) return // rule 2
 
   if (request.mode === 'navigate') { // rule 1

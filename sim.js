@@ -86,7 +86,10 @@ export function step(s, input) {
   s.t += DT
 
   // ---- steer + run
-  const want = Math.max(-RULES.laneHalf, Math.min(RULES.laneHalf, input.targetX))
+  // NaN guard: a zero-width layout rect can produce NaN targetX once, and
+  // NaN is sticky through +=. one poisoned input must not poison the run.
+  const asked = input.targetX === input.targetX ? input.targetX : 0
+  const want = Math.max(-RULES.laneHalf, Math.min(RULES.laneHalf, asked))
   const dx = want - s.x
   const maxMove = RULES.steerSpeed * DT
   s.x += Math.max(-maxMove, Math.min(maxMove, dx))
@@ -153,6 +156,11 @@ export function step(s, input) {
     if (!b.awake && b.y - s.y < RULES.bossRange) b.awake = true
     if (b.awake) {
       b.y -= RULES.bossChargeSpeed * DT
+      // the boss parks at contact range instead of passing through: a boss
+      // behind the crowd would be untargetable-but-still-eating, an unwinnable
+      // slow drain no kid should ever watch. parked, the fight always resolves.
+      const floor = s.y + RULES.contactDist - 4
+      if (b.y < floor) b.y = floor
       const bdx = s.x - b.x
       const bdrift = Math.max(-30 * DT, Math.min(30 * DT, bdx))
       b.x += bdrift
@@ -168,11 +176,12 @@ export function step(s, input) {
     }
   }
 
-  // ---- outcomes
-  if (s.count <= 0) {
-    s.phase = 'lost'
-  } else if (b.hp <= 0) {
+  // ---- outcomes. win is checked FIRST: if the boss dies and the last buddy
+  // pops in the same tick, the kid who saw the boss die deserves the win.
+  if (b.hp <= 0) {
     s.phase = 'won'
+  } else if (s.count <= 0) {
+    s.phase = 'lost'
   }
   return s
 }

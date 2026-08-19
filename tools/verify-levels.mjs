@@ -11,7 +11,18 @@ import { LEVEL_COUNT, levelFor, seedLevel } from '../levels.js'
 import { dailySeed } from '../seed.js'
 
 const daysArg = process.argv.find(a => a.startsWith('--days='))
-const DAYS = daysArg ? Number(daysArg.split('=')[1]) : 3 * 365
+const parsedDays = daysArg ? Number(daysArg.split('=')[1]) : NaN
+// default sweeps a DECADE: review found real dates (2030-07-27, 2036-01-11)
+// where a 32-salt walk exhausted, one year past the old 3-year horizon.
+const DAYS = Number.isInteger(parsedDays) && parsedDays > 0 ? parsedDays : 10 * 365
+if (daysArg && !(Number.isInteger(parsedDays) && parsedDays > 0)) {
+  console.error(`bad --days value: ${daysArg} — a typo must not verify nothing`)
+  process.exit(1)
+}
+
+// salt headroom: shipping content must never sit close to the MAX_SALT wall.
+const CAMPAIGN_SALT_CEILING = 64
+const DAILY_SALT_CEILING = 128
 
 const started = Date.now()
 let maxSalt = 0
@@ -32,6 +43,10 @@ for (let n = 1; n <= LEVEL_COUNT; n++) {
 console.log(`levels: ${LEVEL_COUNT}/${LEVEL_COUNT} bot-beatable`)
 console.log(`  max salt walked: ${maxSalt}, tightest win: ${minFinal} buddies left (level ${closest})`)
 console.log(`  slowest generate+prove: level ${worst.n} at ${worst.ms}ms`)
+if (maxSalt >= CAMPAIGN_SALT_CEILING) {
+  console.error(`campaign salt ${maxSalt} is over the ${CAMPAIGN_SALT_CEILING} headroom ceiling`)
+  process.exit(1)
+}
 
 for (let n = 1; n <= LEVEL_COUNT; n++) {
   const { level, bot } = levelFor(n)
@@ -43,13 +58,21 @@ for (let n = 1; n <= LEVEL_COUNT; n++) {
 console.log('  determinism: second pass identical (layout AND sim outcome)')
 
 let dailyWorstMs = 0
+let dailyMaxSalt = 0
+let dailyMaxSaltDate = null
 const start = new Date()
 for (let d = 0; d < DAYS; d++) {
   const date = new Date(start.getFullYear(), start.getMonth(), start.getDate() + d)
   const t0 = Date.now()
-  seedLevel(dailySeed(date))
+  const { salt } = seedLevel(dailySeed(date))
   const ms = Date.now() - t0
   if (ms > dailyWorstMs) dailyWorstMs = ms
+  if (salt > dailyMaxSalt) { dailyMaxSalt = salt; dailyMaxSaltDate = date }
 }
 console.log(`dailies: ${DAYS} days from today beatable, slowest ${dailyWorstMs}ms`)
+console.log(`  deepest daily salt: ${dailyMaxSalt}${dailyMaxSaltDate ? ` (${dailyMaxSaltDate.toISOString().slice(0, 10)})` : ''}`)
+if (dailyMaxSalt >= DAILY_SALT_CEILING) {
+  console.error(`daily salt ${dailyMaxSalt} is over the ${DAILY_SALT_CEILING} headroom ceiling`)
+  process.exit(1)
+}
 console.log(`total: ${((Date.now() - started) / 1000).toFixed(1)}s`)

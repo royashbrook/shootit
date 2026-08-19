@@ -9,6 +9,19 @@ const LANE_W = 132              // world units of lane width the camera shows
 const VIEW_H = 760              // world units of depth the camera shows
 const CROWD_SCREEN = 0.74       // crowd sits at 74% of the way down the canvas
 
+// firefox 101-111 has dvh but not roundRect; three lines beat a blank canvas
+if (typeof CanvasRenderingContext2D !== 'undefined' && !CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+    const radius = Math.min(Array.isArray(r) ? r[0] : r, w / 2, h / 2)
+    this.moveTo(x + radius, y)
+    this.arcTo(x + w, y, x + w, y + h, radius)
+    this.arcTo(x + w, y + h, x, y + h, radius)
+    this.arcTo(x, y + h, x, y, radius)
+    this.arcTo(x, y, x + w, y, radius)
+    this.closePath()
+  }
+}
+
 export function createGame({ canvas, countEl, onEnd }) {
   const g = canvas.getContext('2d')
   let sim = null
@@ -23,6 +36,7 @@ export function createGame({ canvas, countEl, onEnd }) {
   let pops = []                 // cosmetic
   let lastCounts = new Map()    // pack -> n, to spawn pops on kills
   let lastBossHp = 0
+  let lastCrowd = 0
   let bulletTimer = 0
   let roared = false
   let ended = false
@@ -30,12 +44,15 @@ export function createGame({ canvas, countEl, onEnd }) {
   // ---------------------------------------------------------------- sizing
 
   function fit() {
-    const rect = canvas.parentElement.getBoundingClientRect()
+    // content box, not getBoundingClientRect: the stage has a border, and a
+    // border-box-sized canvas overflows into the overflow:hidden clip
+    const w = canvas.parentElement.clientWidth
+    const h = canvas.parentElement.clientHeight
     const dpr = Math.min(devicePixelRatio || 1, 2)
-    canvas.width = Math.max(1, Math.floor(rect.width * dpr))
-    canvas.height = Math.max(1, Math.floor(rect.height * dpr))
-    canvas.style.width = `${rect.width}px`
-    canvas.style.height = `${rect.height}px`
+    canvas.width = Math.max(1, Math.floor(w * dpr))
+    canvas.height = Math.max(1, Math.floor(h * dpr))
+    canvas.style.width = `${w}px`
+    canvas.style.height = `${h}px`
     g.setTransform(dpr, 0, 0, dpr, 0, 0)
   }
 
@@ -74,15 +91,17 @@ export function createGame({ canvas, countEl, onEnd }) {
     acc += dtMs / 1000
 
     if (keyDir !== 0) {
-      input.targetX = Math.max(-RULES.laneHalf, Math.min(RULES.laneHalf, input.targetX + keyDir * 3.4))
+      // scaled by real time so keyboard feel is refresh-rate independent
+      input.targetX = Math.max(-RULES.laneHalf, Math.min(RULES.laneHalf, input.targetX + keyDir * (dtMs / 1000) * 205))
     }
 
     const gatesBefore = sim.gatesTaken.length
+    let steps = 0
     while (acc >= DT) {
       acc -= DT
-      if (sim.phase === 'run') step(sim, input)
+      if (sim.phase === 'run') { step(sim, input); steps++ }
     }
-    effects(gatesBefore)
+    effects(gatesBefore, steps)
     draw()
 
     if (sim.phase !== 'run' && !ended) {
@@ -97,7 +116,10 @@ export function createGame({ canvas, countEl, onEnd }) {
 
   // --------------------------------------------------------------- effects
 
-  function effects(gatesBefore) {
+  // cosmetics advance by SIM steps, not by rendered frames: a 120Hz phone
+  // must not double bullet speed, a struggling 30fps one must not halve it.
+  function effects(gatesBefore, steps) {
+    const dt = steps * (1 / 60)
     // gate feedback
     if (sim.gatesTaken.length > gatesBefore) {
       const gate = sim.gates.filter(x => x.used)[sim.gatesTaken.length - 1]
@@ -106,23 +128,29 @@ export function createGame({ canvas, countEl, onEnd }) {
       if (op === 'x' || op === '+') sound.gateGood()
       else sound.gateBad()
     }
-    // kill pops
+    // kill pops (enemy side)
     for (const p of sim.packs) {
       const before = lastCounts.get(p) ?? p.n
       if (p.n < before) {
         for (let i = 0; i < Math.min(3, before - p.n); i++) {
-          pops.push({ x: p.x + (i - 1) * 8, y: p.y, r: 6 + i * 2, t: 0 })
+          pops.push({ x: p.x + (i - 1) * 8, y: p.y, r: 6 + i * 2, t: 0, ours: false })
         }
         sound.pop()
       }
       lastCounts.set(p, p.n)
     }
-    if (sim.boss.hp < lastBossHp) pops.push({ x: sim.boss.x, y: sim.boss.y + 20, r: 7, t: 0 })
+    // crowd losses get their OWN feedback: danger must never be silent
+    if (sim.count < lastCrowd) {
+      pops.push({ x: sim.x, y: sim.y, r: 7, t: 0, ours: true })
+      sound.ouch()
+    }
+    lastCrowd = sim.count
+    if (sim.boss.hp < lastBossHp) pops.push({ x: sim.boss.x, y: sim.boss.y + 20, r: 7, t: 0, ours: false })
     lastBossHp = sim.boss.hp
     if (sim.boss.awake && !roared) { roared = true; sound.bossRoar() }
 
     // cosmetic bullets toward the current target
-    bulletTimer -= 1 / 60
+    bulletTimer -= dt
     const target = liveTarget()
     if (target && bulletTimer <= 0 && sim.phase === 'run') {
       bulletTimer = 0.09
@@ -130,9 +158,9 @@ export function createGame({ canvas, countEl, onEnd }) {
       if (bullets.length > 36) bullets.shift()
       sound.pew()
     }
-    for (const b of bullets) b.p += 0.1
+    for (const b of bullets) b.p += dt * 6
     bullets = bullets.filter(b => b.p < 1)
-    for (const p of pops) p.t += 1 / 60
+    for (const p of pops) p.t += dt
     pops = pops.filter(p => p.t < 0.45)
   }
 
@@ -167,7 +195,9 @@ export function createGame({ canvas, countEl, onEnd }) {
     // scroll consistently with travel
     g.fillStyle = theme.deco
     const band = 90
-    const first = Math.floor((sim.y - H) / band) * band
+    // world units, not pixels: the visible depth below the crowd is a slice
+    // of VIEW_H, and mixing in the pixel height only worked by coincidence
+    const first = Math.floor((sim.y - VIEW_H * (1 - CROWD_SCREEN) - band) / band) * band
     for (let wy = first; wy < sim.y + VIEW_H; wy += band) {
       const jitter = (Math.imul(wy, 2654435761) >>> 8) % 1000 / 1000
       const dx = jitter < 0.5 ? left * (0.3 + jitter) : right + (W - right) * (jitter - 0.5)
@@ -210,10 +240,10 @@ export function createGame({ canvas, countEl, onEnd }) {
     // crowd
     drawCrowd()
 
-    // pops
+    // pops: gold for popped slimes, blue for lost buddies (the ouch reads)
     for (const p of pops) {
       const grow = 1 + p.t * 3
-      drawStar(g, sx(p.x), sy(p.y), su(p.r) * grow, '#FFE9A8')
+      drawStar(g, sx(p.x), sy(p.y), su(p.r) * grow, p.ours ? '#9DB8FF' : '#FFE9A8')
     }
 
     countEl.textContent = String(sim.count)
@@ -229,19 +259,24 @@ export function createGame({ canvas, countEl, onEnd }) {
     for (const [side, x0, x1] of [['left', left, mid - 3], ['right', mid + 3, right]]) {
       const op = gate[side]
       const boost = op.op === 'x' || op.op === '+'
-      g.fillStyle = boost ? 'rgba(120, 200, 120, .82)' : 'rgba(240, 180, 90, .82)'
+      // house rule: FORM as well as colour. boost gates are tall arches
+      // wearing a star; drag gates are low droopy slabs. a colourblind
+      // pre-reader still sees which side is the happy one.
+      const gh = boost ? h * 1.15 : h * 0.8
+      g.fillStyle = boost ? 'rgba(105, 195, 115, .85)' : 'rgba(232, 158, 66, .85)'
       g.strokeStyle = '#2A2331'
       g.lineWidth = 3
       g.beginPath()
-      g.roundRect(x0, y - h, x1 - x0, h, [14, 14, 4, 4])
+      g.roundRect(x0, y - gh, x1 - x0, gh, boost ? [su(20), su(20), 4, 4] : [4, 4, su(12), su(12)])
       g.fill()
       g.stroke()
+      if (boost) drawStar(g, (x0 + x1) / 2, y - gh, su(7))
       g.fillStyle = '#2A2331'
       g.font = `800 ${Math.max(16, su(15))}px ui-rounded, system-ui, sans-serif`
       g.textAlign = 'center'
       g.textBaseline = 'middle'
       const label = { x: '×', '+': '+', '-': '−', '/': '÷' }[op.op] + op.k
-      g.fillText(label, (x0 + x1) / 2, y - h / 2)
+      g.fillText(label, (x0 + x1) / 2, y - gh / 2)
     }
     g.globalAlpha = 1
   }
@@ -311,15 +346,17 @@ export function createGame({ canvas, countEl, onEnd }) {
   }
 
   function badge(x, y, text, tint) {
-    g.font = `800 ${Math.max(14, su(12))}px ui-rounded, system-ui, sans-serif`
+    const size = Math.max(14, su(12))
+    g.font = `800 ${size}px ui-rounded, system-ui, sans-serif`
     g.textAlign = 'center'
     g.textBaseline = 'middle'
-    const w = Math.max(30, g.measureText(text).width + 16)
+    const pillH = size * 1.7 // pill scales with the font, or big screens spill
+    const w = Math.max(pillH * 1.3, g.measureText(text).width + size)
     g.fillStyle = tint
     g.strokeStyle = '#2A2331'
     g.lineWidth = 2.5
     g.beginPath()
-    g.roundRect(x - w / 2, y - 12, w, 24, 12)
+    g.roundRect(x - w / 2, y - pillH / 2, w, pillH, pillH / 2)
     g.fill(); g.stroke()
     g.fillStyle = '#2A2331'
     g.fillText(text, x, y + 1)
@@ -352,6 +389,11 @@ export function createGame({ canvas, countEl, onEnd }) {
       cancelAnimationFrame(raf)
     },
     fit,
+    // resize while an end overlay is up: refit AND repaint the frozen frame
+    refresh() {
+      fit()
+      if (sim) draw()
+    },
     isRunning: () => running,
   }
 }
