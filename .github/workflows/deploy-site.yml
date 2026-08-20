@@ -35,6 +35,10 @@ jobs:
       # test suite: every level and 3 years of dailies must be solvable and
       # deterministic before a deploy.
       - run: npm run verify
+      # Copy gate: no em-dashes, no false privacy claims in the public md/html. Stolen
+      # from kidgames after an em-dash reached the live howto. Fails the deploy before
+      # a voice miss reaches a player.
+      - run: npm run lint
       - name: check the site is present
         run: |
           test -f index.html

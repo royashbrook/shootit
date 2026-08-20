@@ -7,6 +7,7 @@
   "scripts": {
     "serve": "node tools/serve.mjs . 4311",
     "icons": "node tools/make-icons.mjs",
-    "verify": "node tools/verify-levels.mjs"
+    "verify": "node tools/verify-levels.mjs",
+    "lint": "node tools/lint-copy.mjs"
   }
 }

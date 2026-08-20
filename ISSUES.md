@@ -2,7 +2,7 @@
 
 local issue log (no remote yet). commits reference these numbers.
 
-## #1 — build "Shoot It" to a releasable, locally-testable state
+## #1: build "Shoot It" to a releasable, locally-testable state
 
 a kids' crowd-runner battle PWA per the kidgames house standard
 (~/gh/kidgames/STANDARD.md). the genre: steer a crowd of buddies down a lane,
@@ -11,14 +11,14 @@ stars at slime monsters, beat the big boss at the end. scope:
 
 - seed-deterministic levels: 600-level campaign + daily + share-a-seed
 - a greedy bot plays every level headless in node and must WIN it before it
-  ships — the "provably beatable" guarantee (sim.js runs identically in node
+  ships, the "provably beatable" guarantee (sim.js runs identically in node
   and the browser: fixed timestep, no transcendental maths, no Math.random)
-- all art code-drawn on canvas (original, warm, no gore — monsters pop into
+- all art code-drawn on canvas (original, warm, no gore, monsters pop into
   stars), all sound synthesised
 - offline-first service worker, install helper, update banner
 - losing costs nothing: instant retry, no lives, no ads, nothing to buy
 
-status: open — releasable local state reached 2026-08-19; remaining: deploy + real-device install checks
+status: open, releasable local state reached 2026-08-19; remaining: deploy + real-device install checks
 
 ### adversarial review 2026-08-19 (4 reviewers, all findings triaged)
 
@@ -40,7 +40,7 @@ fixed:
 - frame-rate-dependent cosmetics: bullets/pops now advance by sim steps, so
   120Hz phones don't double bullet speed; keyboard steer scaled by real time
 - colourblind gate cue: boost gates are tall star-topped arches, drag gates
-  low droopy slabs — form, not just green/amber
+  low droopy slabs, form, not just green/amber
 - crowd losses were silent (all feedback was positive-coded); melee/boss
   chew now plays a rate-limited ouch + blue star pops
 - update banner suppressed while a run or end-sheet is up (a mistap reloaded
@@ -55,9 +55,9 @@ fixed:
   check exact-match instead of startsWith; dead code removed
 
 deferred (viewed, judged acceptable):
-- content-only deploys are invisible until CACHE is bumped in sw.js —
+- content-only deploys are invisible until CACHE is bumped in sw.js,
   template semantics, the deploy protocol IS "bump CACHE" (documented there)
-- NEXT from a shared link can walk past the unlock wall — same deliberate
+- NEXT from a shared link can walk past the unlock wall, same deliberate
   policy as Sort It (shares open everything; wins mark levels replayable)
 - dailySeed uses device-local date (house pattern; "same board today" is
   per-local-date, matching the template and Sort It)
