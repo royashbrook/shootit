@@ -206,6 +206,9 @@ $('howto-open').addEventListener('click', () => {
 })
 $('howto-close').addEventListener('click', () => howto.close())
 
+$('about-open').addEventListener('click', () => $('about').showModal())
+$('about-close').addEventListener('click', () => $('about').close())
+
 $('again').addEventListener('click', () => replay())
 $('retry').addEventListener('click', () => replay())
 $('retry-big').addEventListener('click', () => replay())

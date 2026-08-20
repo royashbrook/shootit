@@ -7,7 +7,7 @@
 //   3. only ok responses get cached, and the write is wrapped in waitUntil.
 //
 // bump CACHE when the shell list changes.
-const CACHE = 'shootit-v1'
+const CACHE = 'shootit-v2'
 const SHELL = [
   './',
   './index.html',
