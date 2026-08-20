@@ -250,3 +250,17 @@ dialog li { margin-bottom: .3rem; }
 @media (prefers-reduced-motion: reduce) {
   .big:active, .chip:active, .lvl:active { transform: none; }
 }
+
+/* maker's mark: roy's real footer (blame.today shape), ported from the kidgames template */
+.maker-mark {
+  margin: 1rem 0 .2rem;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: .8rem;
+  color: var(--soft, #8b8f99);
+  text-align: center;
+}
+.maker-mark a { color: var(--ink, inherit); text-decoration: underline; }
+.maker-mark a.mark-sponsor { color: #d9a441; }
+.mark-heart { width: .85em; height: .85em; fill: #e0746a; vertical-align: -.1em; }
+.mark-dot { opacity: .45; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
