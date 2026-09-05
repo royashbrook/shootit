@@ -152,8 +152,9 @@ const forms = {
   },
 }
 
-export function drawSlime(g, x, y, r, theme, big = false, awake = true) {
-  g.fillStyle = big ? theme.boss : theme.enemy
+// flash: a damage tick just landed, so the body lights up for a beat
+export function drawSlime(g, x, y, r, theme, big = false, awake = true, flash = false) {
+  g.fillStyle = flash ? '#FFF6E5' : big ? theme.boss : theme.enemy
   g.strokeStyle = INK
   g.lineWidth = Math.max(1.2, r * 0.14)
   forms[theme.form](g, x, y, r)
