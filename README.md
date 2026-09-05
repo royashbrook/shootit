@@ -19,10 +19,11 @@ npm run serve   # http://localhost:4311
 - **600 campaign runs** across 30 themed worlds (7 palettes + slime forms
   rotating), plus a **daily run** that is the same for everyone.
 - every run is laid out deterministically from its level number / date and
-  **proven beatable by a greedy bot before it is shown**, `sim.js` is one
-  fixed-timestep pure simulation shared verbatim between the browser and
-  node, so `npm run verify` re-proves all 600 runs + 3 years of dailies in
-  about a second.
+  **proven beatable by a greedy bot before it is shown**, and from level 3
+  on proven LOSABLE by a bot that never steers (the game must not play
+  itself). `sim.js` is one fixed-timestep pure simulation shared verbatim
+  between the browser and node, so `npm run verify` re-proves all 600 runs
+  + a decade of dailies in a few seconds.
 - gates are real kid maths (×2, +14, −8, ÷2); losing costs nothing, instant
   retry, monsters pop into stars, nobody bleeds.
 - all art is code-drawn canvas (`art.js`), all sound synthesised
