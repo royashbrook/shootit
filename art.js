@@ -9,7 +9,9 @@ export const THEMES = [
   {
     key: 'meadow', title: 'Meadow Run',
     bg: '#DFF0D0', lane: '#F5EBD7', rail: '#B8D49A', deco: '#C9E2B2',
-    enemy: '#E5484D', boss: '#C6363B', form: 'spiky',
+    // world 1 wears the drippy form: the first screen says "slimes", so the
+    // first monsters have to read as slimes
+    enemy: '#E5484D', boss: '#C6363B', form: 'drippy',
   },
   {
     key: 'shore', title: 'Sandy Shore',
@@ -34,7 +36,7 @@ export const THEMES = [
   {
     key: 'sky', title: 'Starry Sky',
     bg: '#CDD4EE', lane: '#EEEAF6', rail: '#A3ADDC', deco: '#BFC7E8',
-    enemy: '#E93D82', boss: '#C92C6D', form: 'drippy',
+    enemy: '#E93D82', boss: '#C92C6D', form: 'spiky',
   },
   {
     key: 'candy', title: 'Candy Lane',

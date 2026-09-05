@@ -23,6 +23,7 @@ const SHELL = [
   './seed.js',
   './sounds.js',
   './confetti.js',
+  './wintext.js',
   './install.js',
   './update.js',
   './manifest.json',

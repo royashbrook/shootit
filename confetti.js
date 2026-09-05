@@ -43,8 +43,13 @@ export function confetti(colors) {
       g.fillRect(-p.w / 2, -p.h / 2, p.w, p.h)
       g.restore()
     }
-    if (now < done) requestAnimationFrame(frame)
+    if (now < done && canvas.isConnected) requestAnimationFrame(frame)
     else canvas.remove()
   }
   requestAnimationFrame(frame)
+}
+
+// pull any burst still falling; its loop notices the detached canvas and stops
+export function clearConfetti() {
+  for (const canvas of document.querySelectorAll('canvas.confetti')) canvas.remove()
 }

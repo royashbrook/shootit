@@ -27,7 +27,10 @@ npm run serve   # http://localhost:4311
 - gates are real kid maths (×2, +14, −8, ÷2); losing costs nothing, instant
   retry, monsters pop into stars, nobody bleeds.
 - all art is code-drawn canvas (`art.js`), all sound synthesised
-  (`sounds.js`). zero external assets, zero requests to anyone.
+  (`sounds.js`). zero external assets: the game itself makes no request to
+  anyone. the host (cloudflare) does inject its cookieless web analytics
+  beacon into the served page, so a real browser makes that one request;
+  it sets nothing on the device and follows nobody across sites.
 - PWA per the house standard: offline shell (`sw.js`), update banner,
   install helper, share-a-run with no server.
 
