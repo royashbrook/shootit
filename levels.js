@@ -6,12 +6,18 @@
 // add levels at the end; do not touch the mixing maths. (same policy as the
 // sibling game Sort It, and it worked there.)
 import { rng } from './seed.js'
-import { runBot, applyOp } from './sim.js'
+import { runBot, handsOffInput, applyOp } from './sim.js'
 
 export const LEVEL_COUNT = 600
 export const WORLD_SIZE = 20
 export const WORLD_COUNT = LEVEL_COUNT / WORLD_SIZE
 export const START_COUNT = 5
+
+// the lower bound on difficulty: from this level on, a layout is only accepted
+// if the hands-off bot (never steers, sim.js) LOSES it. levels 1 and 2 may be
+// won by doing nothing, that is the tutorial. the greedy bot must still win
+// every level, so the generator is squeezed from both sides.
+export const HANDS_OFF_LOSES_FROM = 3
 
 // difficulty knobs per level. hand-shaped opening, then a slow ramp with a
 // breather after each boss-heavy world-ender.
@@ -20,15 +26,21 @@ export function paramsFor(n) {
   const inWorld = (n - 1) % WORLD_SIZE                    // 0..19
   const ramp = Math.min(1, world / 12 + inWorld / 60)     // 0..1 difficulty
   return {
-    gates: Math.min(7, 2 + Math.floor(world / 2) + (inWorld >= 12 ? 1 : 0)),
-    packs: Math.min(8, 1 + Math.floor(world / 3) + (inWorld >= 6 ? 1 : 0) + (inWorld >= 15 ? 1 : 0)),
-    packScale: 0.22 + 0.26 * ramp,    // pack size as a fraction of expected crowd
+    gates: Math.min(9, 4 + Math.floor(world / 2) + (inWorld >= 12 ? 1 : 0)),
+    packs: Math.min(10, 3 + Math.floor(world / 3) + (inWorld >= 6 ? 1 : 0) + (inWorld >= 15 ? 1 : 0)),
+    slimeHp: 2 + Math.round(2 * ramp), // 2..4 damage to pop one slime
+    packScale: 0.34 + 0.24 * ramp,    // pack size as a fraction of expected crowd
     bossFactor: 2.2 + 2.2 * ramp,     // boss hp as a multiple of expected crowd
     traps: world >= 2,                // gates where BOTH sides cost you
-    divisors: world >= 1,             // ÷ and − show up from world 2 on
+    divisors: n >= HANDS_OFF_LOSES_FROM, // ÷ and − on one side, once the tutorial is over
     ender: inWorld === WORLD_SIZE - 1 // world-ender: buffer boss
   }
 }
+
+// what fraction of a pack the generator assumes bites the crowd. the old 0.35
+// budgeted for a pack that never reached contact (every slime died in one
+// tick), which is why a crowd that did nothing still won a whole world.
+const MELEE_LOSS = 0.15
 
 // stable integer mixing for (level, salt) -> seed. frozen forever, see header.
 export function levelSeed(n, salt) {
@@ -96,48 +108,56 @@ export function makeLevel(seed, params) {
       const gate = makeGate(random, expected, params)
       gates.push({ y, left: gate.left, right: gate.right })
       expected = gate.out
-      y += 300 + Math.floor(random() * 140)
+      y += 450 + Math.floor(random() * 210)
     } else {
       // a pack the bot's crowd can absorb even with lazy dodging. the hard
       // cap matters: firepower caps at maxShooters, so a pack that scales
-      // with an unbounded crowd would out-eat any possible gun line.
-      const n = Math.min(80, Math.max(3, Math.floor(expected * params.packScale + random() * 4)))
+      // with an unbounded crowd would out-eat any possible gun line. the cap
+      // is in damage (n * hp): ~150 is what a full gun line clears in the
+      // window between fireRange and contact, so a capped pack's tail bites.
+      const cap = Math.min(80, Math.floor(150 / params.slimeHp))
+      const n = Math.min(cap, Math.max(3, Math.floor(expected * params.packScale + random() * 4)))
       const x = Math.floor((random() * 2 - 1) * 26)
-      packs.push({ y, x, n, kind: Math.floor(random() * 3) })
-      expected = Math.max(1, expected - Math.floor(n * 0.35)) // pessimistic melee estimate
-      y += 260 + Math.floor(random() * 120)
+      packs.push({ y, x, n, hp: params.slimeHp, kind: Math.floor(random() * 3) })
+      // the bite a lazy crowd pays: the tail of a pack that reaches contact
+      expected = Math.max(1, expected - Math.floor(n * MELEE_LOSS))
+      y += 390 + Math.floor(random() * 180)
     }
   }
 
   // same logic for the boss cap: ~95 dps absolute ceiling means hp must stay
   // inside what a healthy crowd can pour out before it gets chewed down.
   const bossHp = Math.max(18, Math.min(340, Math.floor(Math.min(expected, 200) * params.bossFactor)))
-  const boss = { y: y + 320, hp: bossHp, hpMax: bossHp, kind: 0 }
-  return { start: START_COUNT, gates, packs, boss, length: boss.y + 200 }
+  const boss = { y: y + 480, hp: bossHp, hpMax: bossHp, kind: 0 }
+  return { start: START_COUNT, gates, packs, boss, length: boss.y + 300 }
 }
 
-// walk salts until the bot proves the level. deterministic: every device
+// walk salts until the bots prove the level: greedy wins it, and from
+// HANDS_OFF_LOSES_FROM on, hands-off loses it. deterministic: every device
 // walks the same salts and stops at the same layout.
 //
 // MAX_SALT is deep on purpose. review found real dates (first: 2030-07-27)
 // and ~0.07% of arbitrary shared seeds where a 32-salt walk exhausted and
-// THREW — a pre-scheduled worldwide daily outage. per-salt win odds are
-// ~35%, so 256 salts puts failure around 10^-47: effectively unreachable,
-// and verify-levels.mjs asserts generous headroom on everything it sweeps.
+// THREW, a pre-scheduled worldwide daily outage. 256 salts puts failure out
+// of reach, and verify-levels.mjs asserts generous headroom on everything
+// it sweeps.
 const MAX_SALT = 256
 
-function findLevel(params, seedFor) {
+function findLevel(n, params, seedFor) {
   for (let salt = 0; salt < MAX_SALT; salt++) {
     const level = makeLevel(seedFor(salt), params)
-    const result = runBot(level)
-    if (result.phase === 'won' && result.count >= 2) return { level, salt, bot: result }
+    const bot = runBot(level)
+    if (bot.phase !== 'won' || bot.count < 2) continue
+    const lazy = runBot(level, handsOffInput)
+    if (n >= HANDS_OFF_LOSES_FROM && lazy.phase !== 'lost') continue
+    return { level, salt, bot, lazy }
   }
   throw new Error('no beatable layout found')
 }
 
 export function levelFor(n) {
   const params = paramsFor(n)
-  const found = findLevel(params, salt => levelSeed(n, salt))
+  const found = findLevel(n, params, salt => levelSeed(n, salt))
   return { kind: 'level', n, params, ...found }
 }
 
@@ -146,6 +166,6 @@ export function seedLevel(seed) {
   const random = rng(seed)
   const n = 120 + Math.floor(random() * 160) // params borrowed from mid-game
   const params = paramsFor(n)
-  const found = findLevel(params, salt => (Math.imul(seed, 40503) ^ Math.imul(salt + 1, 3266489917)) >>> 0)
+  const found = findLevel(n, params, salt => (Math.imul(seed, 40503) ^ Math.imul(salt + 1, 3266489917)) >>> 0)
   return { kind: 'seed', seed, params, ...found }
 }

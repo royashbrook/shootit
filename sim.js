@@ -15,24 +15,24 @@ export const DT = 1 / 60
 // levels are verified against them: retune ⇒ rerun verify before shipping.
 export const RULES = {
   laneHalf: 40,          // crowd centre clamp; the drawn lane is a bit wider
-  runSpeed: 92,          // forward units/sec
+  runSpeed: 138,         // forward units/sec
   steerSpeed: 170,       // sideways units/sec toward the finger
-  fireRange: 330,        // how far ahead the crowd shoots
-  fireRate: 1.35,        // kills/sec per shooter
+  fireRange: 400,        // how far ahead the crowd shoots
+  fireRate: 1.35,        // damage/sec per shooter (a slime has `hp` of it)
   maxShooters: 70,       // big crowds cap their firepower, not their charm
   chargeRange: 300,      // enemies wake up when the crowd is this close
-  chargeSpeed: 135,      // enemy charge, faster than the crowd runs
+  chargeSpeed: 200,      // enemy charge, faster than the crowd runs
   meleeRate: 26,         // mutual knockouts/sec when a pack reaches the crowd
   contactDist: 34,       // "reached the crowd" distance
   bossEatRate: 16,       // units/sec a boss chews while in contact
-  bossChargeSpeed: 55,
+  bossChargeSpeed: 82,
   bossRange: 380,
   maxCount: 999,
 }
 
 // a level layout (from levels.js): { length, start, gates, packs, boss }
 //   gates: [{ y, left: {op, k}, right: {op, k} }]  ops: 'x' '+' '-' '/'
-//   packs: [{ y, x, n, kind }]
+//   packs: [{ y, x, n, hp, kind }]   hp: per slime, so a pack survives a hit
 //   boss:  { y, hp, kind }
 
 export function applyOp(count, { op, k }) {
@@ -55,7 +55,9 @@ export function createSim(level) {
     kills: 0,
     gatesTaken: [],                // side per gate, for the bot and the log
     gates: level.gates.map(g => ({ ...g, used: false })),
-    packs: level.packs.map(p => ({ ...p, y: p.y, n: p.n, charging: false, dead: 0 })),
+    // wound: damage soaked by the front slime so far; hits: damage ticks
+    // landed, for the renderer's flash (a hit that kills nothing is still a hit)
+    packs: level.packs.map(p => ({ ...p, y: p.y, n: p.n, hp: p.hp ?? 1, wound: 0, hits: 0, charging: false, dead: 0 })),
     boss: { ...level.boss, x: 0, awake: false, contact: false },
     level,
     // fractional accumulators so kill rates keep exact fixed-point behaviour
@@ -116,7 +118,11 @@ export function step(s, input) {
       if (target === s.boss) {
         s.boss.hp = Math.max(0, s.boss.hp - dmg)
       } else {
-        const killed = Math.min(target.n, dmg)
+        // damage pours into the front slime; whole hp's worth pops one
+        const soaked = target.wound + dmg
+        const killed = Math.min(target.n, Math.floor(soaked / target.hp))
+        target.wound = soaked - killed * target.hp
+        target.hits += 1
         target.n -= killed
         target.dead += killed
         s.kills += killed
@@ -187,7 +193,7 @@ export function step(s, input) {
 }
 
 // the greedy bot: heads for the gate side that leaves the bigger crowd,
-// otherwise runs the middle. this is the policy verify-levels proves wins —
+// otherwise runs the middle. this is the policy verify-levels proves wins,
 // deliberately simple, because if THIS wins, a kid picking the obviously
 // bigger number wins too.
 export function botInput(s) {
@@ -200,12 +206,20 @@ export function botInput(s) {
   return { targetX: 0 }
 }
 
+// the hands-off bot: a finger that never touches the screen. x stays 0, which
+// the gate rule reads as the right-hand side every time. this is the policy
+// the generator requires to LOSE from HANDS_OFF_LOSES_FROM on (levels.js):
+// if THIS wins, the game is playing itself.
+export function handsOffInput() {
+  return { targetX: 0 }
+}
+
 // headless run to completion, for the verifier and for balance work.
-export function runBot(level, maxSeconds = 120) {
+export function runBot(level, input = botInput, maxSeconds = 120) {
   const s = createSim(level)
   const maxSteps = Math.floor(maxSeconds / DT)
   for (let i = 0; i < maxSteps && s.phase === 'run'; i++) {
-    step(s, botInput(s))
+    step(s, input(s))
   }
   return s
 }
