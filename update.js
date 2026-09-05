@@ -9,6 +9,32 @@
 
 const PROBE = '?update-probe'
 const EVERY = 5 * 60 * 1000
+const PATIENCE = 5000
+
+// resolves once a NEW worker has taken this page over. a plain reload after a
+// deploy is still served by the old worker (scripts come cache first from the
+// old cache), so a tap on the banner ran the stale app.js and only a second
+// reload got the new one. the first controllerchange of a first visit is the
+// initial claim, not a takeover, so it only arms the listener.
+function takeover() {
+  const sw = navigator.serviceWorker
+  if (!sw) return Promise.resolve()
+  return new Promise(resolve => {
+    const arm = () => sw.addEventListener('controllerchange', resolve, { once: true })
+    if (sw.controller) arm()
+    else sw.addEventListener('controllerchange', arm, { once: true })
+  })
+}
+
+// ask the browser for the new worker now; sw.js skips waiting and claims on
+// activate, so the takeover follows on its own
+async function fetchWorker() {
+  if (!('serviceWorker' in navigator)) return false
+  const registration = await navigator.serviceWorker.getRegistration().catch(() => null)
+  if (!registration) return false
+  await registration.update().catch(() => {})
+  return true
+}
 
 // `allowed` gates WHEN the banner may appear (not whether we check): shown
 // mid-run it would sit on top of the end-sheet buttons, and a mistap reloads
@@ -40,6 +66,9 @@ export function wireUpdate(banner, { onStatus, allowed = () => true } = {}) {
         return 'current'
       }
       if (text !== baseline) {
+        // fetch the worker as soon as we know, so by the time of the tap the
+        // takeover has usually already happened and the reload is instant
+        if (!stale) void fetchWorker()
         stale = true
         surface()
         return 'stale'
@@ -50,7 +79,15 @@ export function wireUpdate(banner, { onStatus, allowed = () => true } = {}) {
     }
   }
 
-  banner.addEventListener('click', () => location.reload())
+  const taken = takeover()
+  banner.addEventListener('click', async () => {
+    banner.disabled = true
+    // no worker (registration failed) means a plain reload is all there is.
+    // otherwise wait for the takeover, but never past PATIENCE: offline or an
+    // unchanged worker must still leave the player with a reload, not a dead button.
+    if (await fetchWorker()) await Promise.race([taken, new Promise(r => setTimeout(r, PATIENCE))])
+    location.reload()
+  }, { once: true })
   void check()
   setInterval(() => { void check().then(s => onStatus?.(s)) }, EVERY)
   // coming back to the tab is the moment a player is most likely to accept a reload

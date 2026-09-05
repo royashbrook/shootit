@@ -6,8 +6,10 @@
 //   2. the update probe passes straight through to the network.
 //   3. only ok responses get cached, and the write is wrapped in waitUntil.
 //
-// bump CACHE when the shell list changes.
-const CACHE = 'shootit-v4'
+// 'dev' is the local name. the deploy workflow stamps the short commit sha in
+// (tools/stamp-build.mjs), so every deploy gets a fresh cache and nobody has
+// to remember a bump.
+const CACHE = 'shootit-dev'
 const SHELL = [
   './',
   './index.html',

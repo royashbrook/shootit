@@ -39,11 +39,16 @@ jobs:
       # from kidgames after an em-dash reached the live howto. Fails the deploy before
       # a voice miss reaches a player.
       - run: npm run lint
+      - run: npm test
       - name: check the site is present
         run: |
           test -f index.html
           test -f sw.js
           test -f manifest.json
+      # The build id IS the cache bust: a fresh sw cache name per deploy, and the
+      # same short sha in the about dialog. Stamped here, never committed.
+      - name: stamp the build id
+        run: node tools/stamp-build.mjs "$(git rev-parse --short "$GITHUB_SHA")"
       - name: deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
