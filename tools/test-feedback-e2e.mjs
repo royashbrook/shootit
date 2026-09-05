@@ -56,8 +56,10 @@ try {
   check((await cue()) === null, `the cue is gone after one slide (data-cue=${JSON.stringify(await cue())})`)
   await page.screenshot({ path: join(shots, 'after-slide.png') })
 
-  // gone for the session: a fresh run must not bring it back
+  // gone for the session: a fresh run must not bring it back. the bottom
+  // RETRY opens the pause sheet; the sheet's RETRY is the reset.
   await page.locator('#retry').click()
+  await page.locator('#paused-retry').click({ timeout: 2000 })
   await page.waitForTimeout(400)
   check((await cue()) === null, 'a retry in the same session does not show the cue again')
   console.log(`shots: ${shots}`)

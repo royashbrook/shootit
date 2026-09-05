@@ -10,6 +10,6 @@
     "verify": "node tools/verify-levels.mjs",
     "lint": "node tools/lint-copy.mjs",
     "test": "node tools/test-build-id.mjs && node tools/test-feedback.mjs",
-    "test:e2e": "node tools/test-build-id-e2e.mjs && node tools/test-feedback-e2e.mjs"
+    "test:e2e": "node tools/test-build-id-e2e.mjs && node tools/test-feedback-e2e.mjs && node tools/test-pause-e2e.mjs"
   }
 }
