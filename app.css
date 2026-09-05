@@ -94,7 +94,7 @@ h1 {
   text-align: center;
 }
 
-.small { color: var(--soft); font-size: .85rem; line-height: 1.5; }
+.small { color: var(--soft); font-size: .9rem; line-height: 1.5; }
 .center { text-align: center; }
 
 /* ------------------------------------------------------------------ chrome */
@@ -111,7 +111,7 @@ h1 {
   color: var(--ink);
   font: inherit;
   font-weight: 800;
-  font-size: .8rem;
+  font-size: .9rem; /* 14.4px, the floor for a kid's phone */
   cursor: pointer;
 }
 

@@ -425,9 +425,13 @@ export function createGame({ canvas, countEl, onEnd }) {
     }
     // back-to-front so overlaps read right
     spots.sort((a, b) => a[1] - b[1])
+    // a big crowd hugging a rail is squeezed inside the lane: the spiral is
+    // wider than the room between the centre clamp and the rail
+    const { left, right } = laneEdges()
     for (const [dx, dy] of spots) {
       const wob = Math.sin(sim.t * 9 + dx * 0.7 + dy)
-      drawBuddy(g, cx + dx, cy + dy + wob * 1.4, r, wob)
+      const x = Math.max(left + r, Math.min(right - r, cx + dx))
+      drawBuddy(g, x, cy + dy + wob * 1.4, r, wob)
     }
     badge(cx, cy - su(20) - Math.sqrt(cap) * r, String(sim.count), '#D6E4FF')
   }

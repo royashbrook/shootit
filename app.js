@@ -5,7 +5,8 @@ import { LEVEL_COUNT, WORLD_SIZE, WORLD_COUNT, levelFor, seedLevel } from './lev
 import { themeForWorld, THEMES } from './art.js'
 import { createGame } from './game.js'
 import { sound } from './sounds.js'
-import { confetti } from './confetti.js'
+import { confetti, clearConfetti } from './confetti.js'
+import { winDetail } from './wintext.js'
 import { wireInstall } from './install.js'
 import { wireUpdate, registerWorker } from './update.js'
 
@@ -77,22 +78,17 @@ const game = createGame({
   countEl: $('count'),
   onEnd: sim => {
     if (sim.phase === 'won') {
-      let detail = `${sim.count} buddies made it!`
+      let best = null
       if (board.kind === 'level') {
-        const best = progress.done[board.n]
-        if (best == null || sim.count > best) {
-          progress.done[board.n] = sim.count
-          if (best != null) detail = `${sim.count} buddies made it, your best yet!`
-        } else {
-          detail = `${sim.count} buddies made it. your best is ${best}.`
-        }
+        best = progress.done[board.n]
+        if (best == null || sim.count > best) progress.done[board.n] = sim.count
         if (board.n === progress.current && progress.current < LEVEL_COUNT) progress.current += 1
         saveProgress(progress)
         $('next').hidden = board.n >= LEVEL_COUNT
       } else {
         $('next').hidden = true
       }
-      $('won-detail').textContent = detail
+      $('won-detail').textContent = winDetail({ count: sim.count, par: board.bot.count, best })
       confetti(['#3E63DD', '#FFC53D', '#46A758', '#E93D82', '#00A2C7'])
       $('won').hidden = false
     } else {
@@ -111,6 +107,7 @@ function play(b, label) {
   theme = themeForBoard(b)
   $('board-label').textContent = label
   show(gameScreen)
+  clearConfetti() // NEXT LEVEL inside the burst must not rain on the new run
   game.start(board, theme)
 }
 
