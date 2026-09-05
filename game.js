@@ -32,6 +32,7 @@ export function createGame({ canvas, countEl, onEnd }) {
   let sim = null
   let theme = null
   let running = false
+  let paused = false
   let raf = 0
   let last = 0
   let acc = 0
@@ -99,7 +100,7 @@ export function createGame({ canvas, countEl, onEnd }) {
   // ------------------------------------------------------------------ loop
 
   function frame(now) {
-    if (!running) return
+    if (!running || paused) return
     raf = requestAnimationFrame(frame)
     const dtMs = Math.min(now - last, 50) // background tab must not fast-forward
     last = now
@@ -467,14 +468,32 @@ export function createGame({ canvas, countEl, onEnd }) {
       acc = 0
       fit()
       running = true
+      paused = false
       last = performance.now()
       cancelAnimationFrame(raf)
       raf = requestAnimationFrame(frame)
     },
     stop() {
       running = false
+      paused = false
       cancelAnimationFrame(raf)
     },
+    // the clock is the frame loop: no frames, no accumulated time, so a pause
+    // is simply not asking for the next frame. resume restarts the clock from
+    // now, so the gap never reaches the accumulator.
+    pause() {
+      if (!running || paused) return
+      paused = true
+      cancelAnimationFrame(raf)
+    },
+    resume() {
+      if (!running || !paused) return
+      paused = false
+      keyDir = 0
+      last = performance.now()
+      raf = requestAnimationFrame(frame)
+    },
+    isPaused: () => paused,
     fit,
     // resize while an end overlay is up: refit AND repaint the frozen frame
     refresh() {

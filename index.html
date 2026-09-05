@@ -60,9 +60,19 @@
     <canvas id="board" aria-label="the run: steer with your finger or arrow keys"></canvas>
   </div>
 
+  <!-- pause and retry sit at opposite ends: a thumb reaching for one must not land on the other -->
   <div class="actions">
+    <button id="pause" class="chip" aria-label="pause the run">&#10074;&#10074; PAUSE</button>
     <button id="sound" class="chip" aria-label="sound on or off">&#9834; SOUND</button>
     <button id="retry" class="chip">&#8635; RETRY</button>
+  </div>
+
+  <div id="paused" class="won" role="dialog" aria-label="paused" hidden>
+    <p class="won-title">PAUSED</p>
+    <p class="won-detail">your buddies are waiting, take your time</p>
+    <button id="resume" class="big">RESUME</button>
+    <button id="paused-retry" class="big secondary">RETRY</button>
+    <button id="paused-menu" class="big secondary">MENU</button>
   </div>
 
   <div id="won" class="won" role="status" hidden>

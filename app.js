@@ -63,6 +63,7 @@ function show(screen) {
   for (const el of [menu, levelsScreen, gameScreen]) el.hidden = el !== screen
   $('won').hidden = true
   $('lost').hidden = true
+  $('paused').hidden = true
   if (screen !== gameScreen) game.stop()
 }
 
@@ -118,8 +119,37 @@ const startSeed = (seed, label) => play(seedLevel(seed), label)
 const replay = () => {
   $('won').hidden = true
   $('lost').hidden = true
+  $('paused').hidden = true
   board.kind === 'level' ? startLevel(board.n) : startSeed(board.seed, $('board-label').textContent)
 }
+
+// ------------------------------------------------------------------ pause
+
+// non-destructive: the sim freezes under the sheet and the kid decides.
+// the same sheet answers PAUSE, RETRY (no one-tap reset in the thumb zone),
+// a hidden tab and a page going away, so a phone call costs nothing.
+function pauseRun() {
+  if (gameScreen.hidden || !game.isRunning() || game.isPaused()) return
+  game.pause()
+  $('paused').hidden = false
+}
+
+function resumeRun() {
+  $('paused').hidden = true
+  game.resume()
+}
+
+$('pause').addEventListener('click', pauseRun)
+$('retry').addEventListener('click', pauseRun)
+$('resume').addEventListener('click', resumeRun)
+$('paused-retry').addEventListener('click', () => replay())
+$('paused-menu').addEventListener('click', () => show(menu))
+document.addEventListener('visibilitychange', () => { if (document.hidden) pauseRun() })
+addEventListener('pagehide', pauseRun)
+addEventListener('keydown', event => {
+  if (event.key !== 'Escape' || gameScreen.hidden) return
+  game.isPaused() ? resumeRun() : pauseRun()
+})
 
 // ---------------------------------------------------------- level picker
 
@@ -210,7 +240,6 @@ $('about-open').addEventListener('click', () => $('about').showModal())
 $('about-close').addEventListener('click', () => $('about').close())
 
 $('again').addEventListener('click', () => replay())
-$('retry').addEventListener('click', () => replay())
 $('retry-big').addEventListener('click', () => replay())
 $('lost-menu').addEventListener('click', () => show(menu))
 $('next').addEventListener('click', () => startLevel(Math.min(board.n + 1, LEVEL_COUNT)))
