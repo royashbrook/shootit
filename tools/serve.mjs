@@ -23,4 +23,4 @@ createServer(async (req, res) => {
   } catch {
     res.writeHead(404).end('not found')
   }
-}).listen(port, () => console.log(`http://localhost:${port}`))
+}).listen(port, function () { console.log(`http://localhost:${this.address().port}`) }) // port 0 = pick a free one
