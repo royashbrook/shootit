@@ -1,11 +1,11 @@
-// does a content-only deploy reach a returning player? the real thing, in a
-// browser: serve a scratch copy with tools/serve.mjs, load it so the service
-// worker installs and caches the shell, change app.js only, "deploy" (run the
-// same stamp the workflow runs), reload twice, and require the NEW app.js to be
-// the one running.
+// does a content-only deploy reach a returning player on the FIRST tap of the
+// update banner? the real thing, in a browser: serve a scratch copy with
+// tools/serve.mjs, load it so the service worker installs and caches the shell,
+// change app.js only, "deploy" (run the same stamp the workflow runs), let the
+// banner notice, tap it once, and require the very next document to run the
+// NEW app.js with only the new cache left.
 //
 //   npm run test:e2e
-//   node tools/test-build-id-e2e.mjs --no-stamp   # the old ritual: deploy without a stamp
 //
 // needs playwright, which is not a dependency of the game. point PLAYWRIGHT_ROOT
 // at any project that has it installed (a package.json next to a node_modules).
@@ -17,7 +17,6 @@ import { createRequire } from 'node:module'
 import { stamp } from './stamp-build.mjs'
 
 const ROOT = new URL('..', import.meta.url).pathname
-const NO_STAMP = process.argv.includes('--no-stamp')
 
 let chromium
 try {
@@ -30,7 +29,7 @@ try {
 
 const copy = mkdtempSync(join(tmpdir(), 'shootit-e2e-'))
 cpSync(ROOT, copy, { recursive: true, filter: p => !p.includes('/.git') && !p.includes('/node_modules') })
-const deploy = id => (NO_STAMP ? 'no stamp' : `stamped ${stamp(id, copy).join(', ')}`)
+const deploy = id => `stamped ${stamp(id, copy).join(', ')}`
 
 console.log(`deploy 1: ${deploy('aaaaaaa')}`)
 const server = spawn('node', ['tools/serve.mjs', '.', '0'], { cwd: copy, stdio: ['ignore', 'pipe', 'inherit'] })
@@ -40,6 +39,7 @@ const settle = async page => {
   await page.waitForFunction(() => navigator.serviceWorker.controller !== null)
   await page.waitForTimeout(600)
 }
+const state = async page => `title=${await page.title()} caches=${await page.evaluate(() => caches.keys())}`
 
 let failed = false
 const browser = await chromium.launch()
@@ -49,20 +49,33 @@ try {
   await page.waitForFunction(async () => (await caches.keys()).length > 0)
   await page.reload({ waitUntil: 'networkidle' })
   await settle(page)
-  console.log(`returning player on build 1: title=${await page.title()} caches=${await page.evaluate(() => caches.keys())}`)
+  console.log(`returning player on build 1: ${await state(page)}`)
 
   const app = join(copy, 'app.js')
   writeFileSync(app, `document.title = 'CHANGED-APP-JS'\n` + readFileSync(app, 'utf8'))
   console.log(`deploy 2 (app.js changed): ${deploy('bbbbbbb')}`)
 
-  for (let i = 1; i <= 2; i++) {
-    await page.reload({ waitUntil: 'networkidle' })
-    await settle(page)
-    console.log(`reload ${i}: title=${await page.title()} caches=${await page.evaluate(() => caches.keys())}`)
-  }
+  // the banner checks on a return to the tab, so fake one rather than wait 5 minutes
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+  await page.locator('#update').waitFor({ state: 'visible', timeout: 5000 })
+  console.log(`banner shown: ${await state(page)}`)
+
+  let loads = 0
+  page.on('load', () => { loads++ })
+  const loaded = page.waitForEvent('load', { timeout: 10000 })
+  await page.locator('#update').click()
+  await loaded
+  await settle(page)
+  // the old cache goes on activate, which can trail the new document by a beat
+  await page.waitForFunction(async () => (await caches.keys()).length === 1, null, { timeout: 3000 }).catch(() => {})
   const title = await page.title()
-  failed = title !== 'CHANGED-APP-JS'
-  console.log(failed ? `FAIL: after two reloads the old app.js still runs (title ${JSON.stringify(title)})` : 'ok: the new app.js reached the returning player')
+  const cacheKeys = await page.evaluate(() => caches.keys())
+  console.log(`after one tap (${loads} load): ${await state(page)}`)
+
+  failed = title !== 'CHANGED-APP-JS' || loads !== 1 || cacheKeys.join() !== 'shootit-bbbbbbb'
+  console.log(failed
+    ? `FAIL: one tap on the banner did not land the new app.js (title ${JSON.stringify(title)}, caches ${cacheKeys.join(',')}, ${loads} load)`
+    : 'ok: the first tap on the banner ran the new app.js with only the new cache left')
 } finally {
   await browser.close()
   server.kill()

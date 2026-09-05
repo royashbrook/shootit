@@ -37,15 +37,16 @@ npm run verify        # prove every run + 3 years of dailies beatable, twice
 npm run icons         # regenerate icon.svg + pngs
 node tools/tune.mjs   # balance workbench (where and why the bot dies)
 npm test              # the build id stamp: sw cache name + about build id
-npm run test:e2e      # a content-only deploy reaches a returning player (needs PLAYWRIGHT_ROOT)
+npm run test:e2e      # a content-only deploy lands on the first tap of the update banner (needs PLAYWRIGHT_ROOT)
 ```
 
 ## deploys
 
 pushing to main deploys. the workflow stamps the short commit sha into
 `sw.js` (the cache name) and the about dialog (the build id) before upload,
-so a content-only change reaches a returning player on the next reload with
-no hand bump. locally both read `dev`.
+so a content-only change reaches a returning player on the first tap of the
+update banner (the tap waits for the new worker to take over, then reloads
+once) with no hand bump. locally both read `dev`.
 
 ## license
 
