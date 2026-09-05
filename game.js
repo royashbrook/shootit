@@ -4,10 +4,15 @@
 import { DT, RULES, step, createSim } from './sim.js'
 import { drawBuddy, drawSlime, drawStar, face } from './art.js'
 import { sound } from './sounds.js'
+import { createFx, FLOAT_LIFE } from './fx.js'
 
 const LANE_W = 132              // world units of lane width the camera shows
 const VIEW_H = 760              // world units of depth the camera shows
 const CROWD_SCREEN = 0.74       // crowd sits at 74% of the way down the canvas
+
+// the one verb, taught once per session: the "slide to steer" cue sits under
+// the crowd until the first real slide (or arrow key), then stays gone
+let taught = false
 
 // firefox 101-111 has dvh but not roundRect; three lines beat a blank canvas
 if (typeof CanvasRenderingContext2D !== 'undefined' && !CanvasRenderingContext2D.prototype.roundRect) {
@@ -34,6 +39,7 @@ export function createGame({ canvas, countEl, onEnd }) {
   let keyDir = 0
   let bullets = []              // cosmetic
   let pops = []                 // cosmetic
+  let fx = createFx()           // floaties + hit flashes, cosmetic
   let lastCounts = new Map()    // pack -> n, to spawn pops on kills
   let lastBossHp = 0
   let lastCrowd = 0
@@ -70,11 +76,20 @@ export function createGame({ canvas, countEl, onEnd }) {
     input.targetX = (frac - 0.5) * LANE_W
   }
 
+  // the cue's state is mirrored onto the canvas element so the dom (and a
+  // browser test) can tell whether the hint is up without reading pixels
+  function learned() {
+    taught = true
+    delete canvas.dataset.cue
+  }
+
   canvas.addEventListener('pointerdown', event => { canvas.setPointerCapture(event.pointerId); pointerX(event) })
-  canvas.addEventListener('pointermove', event => { if (event.buttons) pointerX(event) })
+  canvas.addEventListener('pointermove', event => { if (event.buttons) { pointerX(event); learned() } })
   addEventListener('keydown', event => {
     if (event.key === 'ArrowLeft') keyDir = -1
     else if (event.key === 'ArrowRight') keyDir = 1
+    else return
+    learned()
   })
   addEventListener('keyup', event => {
     if (event.key === 'ArrowLeft' && keyDir === -1) keyDir = 0
@@ -99,7 +114,12 @@ export function createGame({ canvas, countEl, onEnd }) {
     let steps = 0
     while (acc >= DT) {
       acc -= DT
-      if (sim.phase === 'run') { step(sim, input); steps++ }
+      if (sim.phase === 'run') {
+        const countBefore = sim.count
+        step(sim, input)
+        fx.afterStep(sim, countBefore)
+        steps++
+      }
     }
     effects(gatesBefore, steps)
     draw()
@@ -162,6 +182,7 @@ export function createGame({ canvas, countEl, onEnd }) {
     bullets = bullets.filter(b => b.p < 1)
     for (const p of pops) p.t += dt
     pops = pops.filter(p => p.t < 0.45)
+    fx.tick(dt)
   }
 
   function liveTarget() {
@@ -246,7 +267,71 @@ export function createGame({ canvas, countEl, onEnd }) {
       drawStar(g, sx(p.x), sy(p.y), su(p.r) * grow, p.ours ? '#9DB8FF' : '#FFE9A8')
     }
 
+    for (const f of fx.floats) drawFloat(f)
+    if (!taught && sim.phase === 'run') drawCue()
+
     countEl.textContent = String(sim.count)
+  }
+
+  // the gate's value, rising off the crowd's badge and fading: the number IS
+  // the lesson. it rides with the crowd (screen space), not the lane, or the
+  // camera would carry it down and away in under a second
+  function drawFloat(f) {
+    const life = f.t / FLOAT_LIFE
+    const size = Math.max(20, su(19))
+    g.globalAlpha = 1 - life * life
+    g.font = `800 ${size}px ui-rounded, system-ui, sans-serif`
+    g.textAlign = 'center'
+    g.textBaseline = 'middle'
+    g.lineWidth = Math.max(3, size * 0.18)
+    g.strokeStyle = '#2A2331'
+    g.fillStyle = f.good ? '#8EDB7C' : '#FFB067'
+    const x = sx(sim.x)
+    const y = crowdTop() - su(14) - life * su(50)
+    g.strokeText(f.text, x, y)
+    g.fillText(f.text, x, y)
+    g.globalAlpha = 1
+  }
+
+  // screen y of the top of the crowd's count badge
+  function crowdTop() {
+    const r = su(6.4)
+    return sy(sim.y) - su(20) - Math.sqrt(Math.min(sim.count, 48)) * r - r * 1.7
+  }
+
+  // "slide to steer" under the crowd: two arrowheads and the words, swaying
+  // sideways so it reads as a motion, not a label
+  function drawCue() {
+    canvas.dataset.cue = 'steer'
+    const sway = Math.sin(sim.t * 4) * su(7)
+    const x = sx(sim.x) + sway
+    const y = sy(sim.y) + su(36)
+    const size = Math.max(14, su(11))
+    g.font = `800 ${size}px ui-rounded, system-ui, sans-serif`
+    g.textAlign = 'center'
+    g.textBaseline = 'middle'
+    const text = 'slide to steer'
+    const tw = g.measureText(text).width
+    const pad = size * 0.8
+    const arrow = size * 0.7
+    const w = tw + pad * 2 + arrow * 2 + size
+    g.fillStyle = 'rgba(255, 246, 229, .92)'
+    g.strokeStyle = '#2A2331'
+    g.lineWidth = 2.5
+    g.beginPath()
+    g.roundRect(x - w / 2, y - size, w, size * 2, size)
+    g.fill(); g.stroke()
+    g.fillStyle = '#2A2331'
+    g.fillText(text, x, y + 1)
+    for (const dir of [-1, 1]) {
+      const tip = x + dir * (w / 2 - pad * 0.6)
+      g.beginPath()
+      g.moveTo(tip, y)
+      g.lineTo(tip - dir * arrow, y - arrow * 0.7)
+      g.lineTo(tip - dir * arrow, y + arrow * 0.7)
+      g.closePath()
+      g.fill()
+    }
   }
 
   function drawGate(gate) {
@@ -298,8 +383,9 @@ export function createGame({ canvas, countEl, onEnd }) {
     const y = sy(p.y)
     if (y < -140 || y > ch() + 140) return
     const r = su(7)
+    const flash = fx.flashing(p)
     for (const [dx, dy] of packLayout(p.n, 7)) {
-      drawSlime(g, sx(p.x) + su(dx), y + su(dy), r, theme, false, p.charging)
+      drawSlime(g, sx(p.x) + su(dx), y + su(dy), r, theme, false, p.charging, flash)
     }
     badge(sx(p.x), y - su(16) - Math.sqrt(Math.min(p.n, 24)) * su(6), String(p.n), '#FFF6E5')
   }
@@ -372,6 +458,7 @@ export function createGame({ canvas, countEl, onEnd }) {
       keyDir = 0
       bullets = []
       pops = []
+      fx = createFx()
       lastCounts = new Map()
       lastBossHp = sim.boss.hp
       bulletTimer = 0

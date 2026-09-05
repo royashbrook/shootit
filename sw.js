@@ -19,6 +19,7 @@ const SHELL = [
   './sim.js',
   './levels.js',
   './art.js',
+  './fx.js',
   './seed.js',
   './sounds.js',
   './confetti.js',
