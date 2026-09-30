@@ -40,6 +40,10 @@ const small = css.match(/\.small \{[^}]*font-size: ([\d.]+)rem/)?.[1]
 check(Number(chip) >= 0.9, `.chip text is at least .9rem (${chip})`)
 check(Number(small) >= 0.9, `.small text is at least .9rem (${small})`)
 
+// the about sheet's maker-mark links clear the 44px floor on both axes
+const mark = [...css.matchAll(/\.maker-mark a \{([^}]*)\}/g)].map(m => m[1]).join(';')
+check(/min-width: 2\.75rem/.test(mark) && /min-height: 2\.75rem/.test(mark), 'maker-mark links hold a 44px hit area (min-width and min-height 2.75rem)')
+
 // the readme says what is true about requests
 const readme = read('README.md')
 check(!readme.includes('zero requests to anyone'), 'readme no longer claims zero requests')
