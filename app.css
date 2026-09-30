@@ -302,6 +302,15 @@ dialog li { margin-bottom: .3rem; }
   text-align: center;
 }
 .maker-mark a { color: var(--ink); text-decoration: underline; }
+/* the mark links are real tap targets on a phone, not 15px text: the 44px floor holds
+   on BOTH axes, so the hit area grows around the same text size */
+.maker-mark a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.75rem; /* 44px floor */
+  min-height: 2.75rem;
+}
 .maker-mark a.mark-sponsor { color: var(--accent-dim); }
 .mark-heart { width: .85em; height: .85em; fill: var(--mark-heart); vertical-align: -.1em; }
 .mark-dot { opacity: .45; }
