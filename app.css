@@ -2,24 +2,64 @@
    system font stack only: a webfont is a third-party request with a kid's IP on
    it, and it costs offline-first (see STANDARD.md). */
 :root {
-  --bg: #FFF6E5;
+  /* the SHELL THEME TOKENS, in full (kidgames docs/shell-theme-tokens.md): every
+     colour, font, radius and shadow the shell paints with lives here and nowhere
+     else. a reskin redefines values under a data-theme, never a rule. */
+  --surface: #FFF6E5;
+  --surface-raised: #FFFFFF;
+  --surface-sunk: #DFF0D0;
+  --surface-complete: #C6E8C2;
   --ink: #3D3230;
-  --soft: #8A7A70;
+  --ink-dim: #8A7A70;
+  --ink-on-accent: #3D3230;
   --accent: #7EA6FF;
-  --card: #FFFFFF;
+  --accent-dim: #5A86E0;
   --line: #3D3230;
-  --tint: #DFF0D0;
+  --font-ui: ui-rounded, "Arial Rounded MT Bold", "Nunito", system-ui, sans-serif;
+  --font-display: var(--font-ui);
+  --font-mono: ui-monospace, monospace;
+  --radius: 1rem;
+  --shadow: 0 .3rem 0 var(--line);
+  --shadow-pressed: 0 .05rem 0 var(--line);
+  --shadow-low: 0 .25rem 0 var(--line);
+  --shadow-sheet: 0 -1rem 3rem color-mix(in srgb, var(--line) 18%, transparent);
+  /* the signature: the same value in EVERY theme, by contract */
+  --mark-heart: #e0746a;
+
   color: var(--ink);
-  background: var(--bg);
-  font-family: ui-rounded, "Arial Rounded MT Bold", "Nunito", system-ui, sans-serif;
+  background: var(--surface);
+  font-family: var(--font-ui);
   font-synthesis: none;
+}
+/* the SECOND theme: nothing toggles it yet, it is here so the swap is shown, not
+   asserted. same accent, dark ground, the heart untouched. */
+[data-theme="dusk"] {
+  --surface: #241F2E;
+  --surface-raised: #332B42;
+  --surface-sunk: #1B1724;
+  --surface-complete: #26472D;
+  --ink: #F2ECE2;
+  --ink-dim: #B3A8BF;
+  --ink-on-accent: #241F2E;
+  --accent: #7EA6FF;
+  --accent-dim: #5A86E0;
+  --line: #F2ECE2;
+  --font-ui: ui-rounded, "Arial Rounded MT Bold", "Nunito", system-ui, sans-serif;
+  --font-display: var(--font-ui);
+  --font-mono: ui-monospace, monospace;
+  --radius: 1rem;
+  --shadow: 0 .3rem 0 var(--line);
+  --shadow-pressed: 0 .05rem 0 var(--line);
+  --shadow-low: 0 .25rem 0 var(--line);
+  --shadow-sheet: 0 -1rem 3rem color-mix(in srgb, var(--line) 18%, transparent);
+  --mark-heart: #e0746a;
 }
 
 * { box-sizing: border-box; }
 
 html, body {
   margin: 0;
-  background: var(--bg);
+  background: var(--surface);
   -webkit-text-size-adjust: 100%;
   user-select: none;
   -webkit-user-select: none;
@@ -60,41 +100,43 @@ body {
 #game { overflow: hidden; }
 
 h1 {
+  font-family: var(--font-display);
   margin: 1.2rem 0 0;
   font-size: clamp(2.6rem, 14vw, 3.6rem);
   letter-spacing: .02em;
 }
 
-.tagline { margin: 0 0 1rem; color: var(--soft); font-weight: 700; }
+.tagline { margin: 0 0 1rem; color: var(--ink-dim); font-weight: 700; }
 
 .big {
   width: 100%;
   min-height: 3.4rem;
   padding: .9rem 1.2rem;
   border: .18rem solid var(--line);
-  border-radius: 1.2rem;
+  border-radius: calc(var(--radius) * 1.2);
   background: var(--accent);
-  box-shadow: 0 .3rem 0 var(--line);
-  color: var(--ink);
+  box-shadow: var(--shadow);
+  color: var(--ink-on-accent);
   font: inherit;
   font-weight: 800;
   font-size: 1.05rem;
   cursor: pointer;
 }
 
-.big:active { transform: translateY(.25rem); box-shadow: 0 .05rem 0 var(--line); }
-.big.secondary { background: var(--card); }
+.big:active { transform: translateY(.25rem); box-shadow: var(--shadow-pressed); }
+/* the secondary variant changes the surface, so it changes the ink with it */
+.big.secondary { background: var(--surface-raised); color: var(--ink); }
 
 .ethos {
   margin-top: auto;
   padding-top: 1.4rem;
-  color: var(--soft);
+  color: var(--ink-dim);
   font-size: .8rem;
   font-weight: 700;
   text-align: center;
 }
 
-.small { color: var(--soft); font-size: .9rem; line-height: 1.5; }
+.small { color: var(--ink-dim); font-size: .9rem; line-height: 1.5; }
 .center { text-align: center; }
 
 /* ------------------------------------------------------------------ chrome */
@@ -106,8 +148,8 @@ h1 {
   min-width: 2.75rem;
   padding: .5rem .7rem;
   border: .15rem solid var(--line);
-  border-radius: .9rem;
-  background: var(--card);
+  border-radius: calc(var(--radius) * .9);
+  background: var(--surface-raised);
   color: var(--ink);
   font: inherit;
   font-weight: 800;
@@ -116,7 +158,7 @@ h1 {
 }
 
 .chip:active { transform: translateY(.12rem); }
-.chip.flat { border-color: transparent; background: transparent; color: var(--soft); cursor: default; }
+.chip.flat { border-color: transparent; background: transparent; color: var(--ink-dim); cursor: default; }
 .chip.flat.mono { font-variant-numeric: tabular-nums; }
 #board-label { flex: 1; text-align: left; padding-inline: .2rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #sound.muted { text-decoration: line-through; opacity: .6; }
@@ -136,8 +178,8 @@ h1 {
   min-height: 0;
   overflow: hidden;
   border: .16rem solid var(--line);
-  border-radius: 1.4rem;
-  background: var(--tint);
+  border-radius: calc(var(--radius) * 1.4);
+  background: var(--surface-sunk);
 }
 
 #stage canvas {
@@ -159,25 +201,25 @@ h1 {
     max(1.2rem, calc(env(safe-area-inset-bottom) + 1.2rem))
     max(1.2rem, env(safe-area-inset-left));
   border-top: .22rem solid var(--line);
-  border-radius: 1.6rem 1.6rem 0 0;
-  background: var(--bg);
-  box-shadow: 0 -1rem 3rem rgb(61 50 48 / .18);
+  border-radius: calc(var(--radius) * 1.6) calc(var(--radius) * 1.6) 0 0;
+  background: var(--surface);
+  box-shadow: var(--shadow-sheet);
   text-align: center;
 }
 
 .won-title { margin: 0; font-size: 1.6rem; font-weight: 800; }
-.won-detail { margin: .2rem 0 .6rem; color: var(--soft); font-weight: 700; }
+.won-detail { margin: .2rem 0 .6rem; color: var(--ink-dim); font-weight: 700; }
 
 dialog {
   width: min(24rem, calc(100vw - 2rem));
   padding: 1.2rem;
   border: .22rem solid var(--line);
-  border-radius: 1.4rem;
-  background: var(--bg);
+  border-radius: calc(var(--radius) * 1.4);
+  background: var(--surface);
   color: var(--ink);
 }
 
-dialog::backdrop { background: rgb(61 50 48 / .45); }
+dialog::backdrop { background: color-mix(in srgb, var(--line) 45%, transparent); }
 dialog h2 { margin: 0 0 .6rem; }
 dialog ol { margin: 0 0 .8rem; padding-left: 1.2rem; line-height: 1.6; }
 dialog li { margin-bottom: .3rem; }
@@ -191,10 +233,10 @@ dialog li { margin-bottom: .3rem; }
   width: auto;
   padding: .8rem 1.4rem;
   border: .18rem solid var(--line);
-  border-radius: 1.2rem;
+  border-radius: calc(var(--radius) * 1.2);
   background: var(--accent);
-  box-shadow: 0 .3rem 0 var(--line);
-  color: var(--ink);
+  box-shadow: var(--shadow);
+  color: var(--ink-on-accent);
   font: inherit;
   font-weight: 800;
   cursor: pointer;
@@ -230,8 +272,8 @@ dialog li { margin-bottom: .3rem; }
   justify-content: center;
   min-height: 3.4rem;
   border: .16rem solid var(--line);
-  border-radius: 1rem;
-  background: var(--card);
+  border-radius: var(--radius);
+  background: var(--surface-raised);
   color: var(--ink);
   font: inherit;
   font-weight: 800;
@@ -239,10 +281,10 @@ dialog li { margin-bottom: .3rem; }
 }
 
 .lvl:active { transform: translateY(.15rem); }
-.lvl.done { background: #C6E8C2; }
-.lvl.now { background: var(--accent); box-shadow: 0 .25rem 0 var(--line); }
+.lvl.done { background: var(--surface-complete); }
+.lvl.now { background: var(--accent); color: var(--ink-on-accent); box-shadow: var(--shadow-low); }
 .lvl:disabled { opacity: .38; cursor: default; }
-.lvl .sub { font-size: .72rem; color: var(--soft); font-weight: 700; }
+.lvl .sub { font-size: .72rem; color: var(--ink-dim); font-weight: 700; }
 
 /* the game IS motion, so reduced-motion here means: no decorative page
    animation. gameplay motion stays (it is the information), and game.js
@@ -254,13 +296,13 @@ dialog li { margin-bottom: .3rem; }
 /* maker's mark: roy's real footer (blame.today shape), ported from the kidgames template */
 .maker-mark {
   margin: 1rem 0 .2rem;
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-mono);
   font-size: .8rem;
-  color: var(--soft, #8b8f99);
+  color: var(--ink-dim);
   text-align: center;
 }
-.maker-mark a { color: var(--ink, inherit); text-decoration: underline; }
-.maker-mark a.mark-sponsor { color: #d9a441; }
-.mark-heart { width: .85em; height: .85em; fill: #e0746a; vertical-align: -.1em; }
+.maker-mark a { color: var(--ink); text-decoration: underline; }
+.maker-mark a.mark-sponsor { color: var(--accent-dim); }
+.mark-heart { width: .85em; height: .85em; fill: var(--mark-heart); vertical-align: -.1em; }
 .mark-dot { opacity: .45; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
